@@ -31,7 +31,7 @@ module "gke_staging" {
   cluster_name = "staging-cluster"
   node_count   = 1
   machine_type = "e2-medium"
-  
+
   depends_on = [google_project_service.apis]
 }
 
@@ -42,9 +42,9 @@ module "gke_prod" {
   project_id   = var.project_id
   region       = var.region
   cluster_name = "prod-cluster"
-  node_count   = 2          
+  node_count   = 2
   machine_type = "e2-medium"
-  
+
   depends_on = [google_project_service.apis]
 }
 
@@ -65,25 +65,25 @@ resource "google_clouddeploy_target" "prod" {
   gke {
     cluster = module.gke_prod.cluster_id
   }
-  
+
   # Require manual approval for prod
   require_approval = true
 }
 
 #  The cloud deploy delivery pipeline
 resource "google_clouddeploy_delivery_pipeline" "pipeline" {
-  name     = "${var.app_name}-pipeline"
-  location = var.region
+  name        = "${var.app_name}-pipeline"
+  location    = var.region
   description = "Delivery pipeline for ${var.app_name}"
-  project = "${var.project_id}"
+  project     = var.project_id
 
   serial_pipeline {
     stages {
-      profiles = ["staging"]
+      profiles  = ["staging"]
       target_id = google_clouddeploy_target.staging.name
     }
     stages {
-      profiles = ["prod"]
+      profiles  = ["prod"]
       target_id = google_clouddeploy_target.prod.name
     }
   }
@@ -99,7 +99,7 @@ resource "google_project_iam_member" "cloudbuild_ar_writer" {
   project = var.project_id
   role    = "roles/artifactregistry.writer"
   member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.apis]
 }
 
@@ -108,7 +108,7 @@ resource "google_project_iam_member" "cloudbuild_deploy_releaser" {
   project = var.project_id
   role    = "roles/clouddeploy.releaser"
   member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.apis]
 }
 
@@ -118,7 +118,7 @@ resource "google_project_iam_member" "cloudbuild_sa_user" {
   project = var.project_id
   role    = "roles/iam.serviceAccountUser"
   member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.apis]
 }
 
@@ -128,6 +128,6 @@ resource "google_project_iam_member" "deploy_container_dev" {
   project = var.project_id
   role    = "roles/container.developer"
   member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.apis]
 }

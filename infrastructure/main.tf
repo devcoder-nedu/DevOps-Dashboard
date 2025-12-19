@@ -16,7 +16,6 @@ resource "google_project_service" "apis" {
 
 # 2. Artifact Registry
 resource "google_artifact_registry_repository" "app_repo" {
-  name          = "${var.app_name}-repo"
   location      = var.region
   repository_id = "${var.app_name}-repo"
   format        = "DOCKER"

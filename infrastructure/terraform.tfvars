@@ -1,2 +1,3 @@
 project_id = "strange-mariner-290720"
-region     = "us-central1-a"
+zone       = "us-central1-a"
+region     = "us-central1"

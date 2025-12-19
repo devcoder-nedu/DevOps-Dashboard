@@ -16,7 +16,7 @@ resource "google_project_service" "apis" {
 
 # 2. Artifact Registry
 resource "google_artifact_registry_repository" "app_repo" {
-  location      = var.region
+  location      = var.zone
   repository_id = "${var.app_name}-repo"
   format        = "DOCKER"
 }
@@ -50,7 +50,7 @@ module "gke_prod" {
 # cloud deploy targets
 resource "google_clouddeploy_target" "staging" {
   name     = "staging"
-  location = var.region
+  location = var.zone
 
   gke {
     cluster = module.gke_staging.cluster_id
@@ -59,7 +59,7 @@ resource "google_clouddeploy_target" "staging" {
 
 resource "google_clouddeploy_target" "prod" {
   name     = "prod"
-  location = var.region
+  location = var.zone
 
   gke {
     cluster = module.gke_prod.cluster_id
@@ -72,7 +72,7 @@ resource "google_clouddeploy_target" "prod" {
 #  The cloud deploy delivery pipeline
 resource "google_clouddeploy_delivery_pipeline" "pipeline" {
   name        = "${var.app_name}-pipeline"
-  location    = var.region
+  location    = var.zone
   description = "Delivery pipeline for ${var.app_name}"
   project     = var.project_id
 

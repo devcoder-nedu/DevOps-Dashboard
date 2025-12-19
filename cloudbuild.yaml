@@ -1,0 +1,31 @@
+steps:
+  # 1. Build the container image using Skaffold
+  - name: "gcr.io/k8s-skaffold/skaffold"
+    args:
+      - "build"
+      - "--file-output=/workspace/artifacts.json"
+      - "--default-repo=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}"
+      - "--push=true"
+
+  # 2. Create a Release in Cloud Deploy
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      - "deploy"
+      - "releases"
+      - "create"
+      - "rel-${SHORT_SHA}"
+      - "--delivery-pipeline=${_PIPELINE_NAME}"
+      - "--region=${_REGION}"
+      - "--source=."
+      # This flag reads the JSON file from step 1 automatically!
+      - "--build-artifacts=/workspace/artifacts.json"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _REGION: us-central1
+  #Matching values in Terraform infra/main.tf
+  _PIPELINE_NAME: gke-devops-app-pipeline 
+  _REPO_NAME: gke-devops-app-repo          

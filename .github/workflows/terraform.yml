@@ -7,6 +7,15 @@ on:
     paths:
       - "infrastructure/**" # Only run when infra files change
   workflow_dispatch: # Allows manual triggering
+    inputs:
+      action:
+        description: 'Action to perform: apply or destroy'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
 
 jobs:
   terraform:
@@ -37,11 +46,19 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # 6. Apply Infrastructure
-      # We use -auto-approve so it doesn't ask for "yes"
-      # We pass variables using environment variables TF_VAR_...
+      # CONDITIONAL STEP: Runs on push to main or if you selected "apply" manually
       - name: Terraform Apply
+        if: ${{ github.event.inputs.action == 'apply' || github.event_name == 'push' }}
         run: terraform apply -auto-approve
+        env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_region: "us-central1-a"
+          TF_VAR_app_name: "gke-devops-app"
+
+      # CONDITIONAL STEP: Runs only if you selected "destroy" manually
+      - name: Terraform Destroy
+        if: ${{ github.event.inputs.action == 'destroy' }}
+        run: terraform destroy -auto-approve
         env:
           TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
           TF_VAR_region: "us-central1-a"

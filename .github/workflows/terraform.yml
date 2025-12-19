@@ -37,12 +37,14 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      - name: Terrafomr Destroy
+        run: terraform destroy
       # 6. Apply Infrastructure
       # We use -auto-approve so it doesn't ask for "yes"
       # We pass variables using environment variables TF_VAR_...
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        env:
-          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-          TF_VAR_region: "us-central1"
-          TF_VAR_app_name: "gke-devops-app"
+    #   - name: Terraform Apply
+    #     run: terraform apply -auto-approve
+    #     env:
+    #       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+    #       TF_VAR_region: "us-central1"
+    #       TF_VAR_app_name: "gke-devops-app"

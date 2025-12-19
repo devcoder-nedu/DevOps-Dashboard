@@ -33,8 +33,8 @@ module "gke_staging" {
 
 
   # FIX: QUOTA REDUCTION
-  disk_size_gb = 30             # Reduced from 100GB default
-  disk_type    = "pd-standard"  # Changed from SSD to Standard to bypass SSD quota
+  disk_size_gb = 30            # Reduced from 100GB default
+  disk_type    = "pd-standard" # Changed from SSD to Standard to bypass SSD quota
 
   depends_on = [google_project_service.apis]
 }
@@ -50,8 +50,8 @@ module "gke_prod" {
   machine_type = "e2-medium"
 
   # FIX: QUOTA REDUCTION
-  disk_size_gb = 30             # Reduced from 100GB default
-  disk_type    = "pd-standard"  # Changed from SSD to Standard to bypass SSD quota
+  disk_size_gb = 30            # Reduced from 100GB default
+  disk_type    = "pd-standard" # Changed from SSD to Standard to bypass SSD quota
 
   depends_on = [google_project_service.apis]
 }

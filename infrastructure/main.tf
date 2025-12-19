@@ -16,7 +16,7 @@ resource "google_project_service" "apis" {
 
 # 2. Artifact Registry
 resource "google_artifact_registry_repository" "app_repo" {
-  location      = var.zone
+  location      = var.region
   repository_id = "${var.app_name}-repo"
   format        = "DOCKER"
 }
@@ -31,6 +31,11 @@ module "gke_staging" {
   node_count   = 1
   machine_type = "e2-medium"
 
+
+  # FIX: QUOTA REDUCTION
+  disk_size_gb = 30             # Reduced from 100GB default
+  disk_type    = "pd-standard"  # Changed from SSD to Standard to bypass SSD quota
+
   depends_on = [google_project_service.apis]
 }
 
@@ -44,13 +49,17 @@ module "gke_prod" {
   node_count   = 2
   machine_type = "e2-medium"
 
+  # FIX: QUOTA REDUCTION
+  disk_size_gb = 30             # Reduced from 100GB default
+  disk_type    = "pd-standard"  # Changed from SSD to Standard to bypass SSD quota
+
   depends_on = [google_project_service.apis]
 }
 
 # cloud deploy targets
 resource "google_clouddeploy_target" "staging" {
   name     = "staging"
-  location = var.zone
+  location = var.region
 
   gke {
     cluster = module.gke_staging.cluster_id
@@ -59,7 +68,7 @@ resource "google_clouddeploy_target" "staging" {
 
 resource "google_clouddeploy_target" "prod" {
   name     = "prod"
-  location = var.zone
+  location = var.region
 
   gke {
     cluster = module.gke_prod.cluster_id
@@ -72,7 +81,7 @@ resource "google_clouddeploy_target" "prod" {
 #  The cloud deploy delivery pipeline
 resource "google_clouddeploy_delivery_pipeline" "pipeline" {
   name        = "${var.app_name}-pipeline"
-  location    = var.zone
+  location    = var.region
   description = "Delivery pipeline for ${var.app_name}"
   project     = var.project_id
 

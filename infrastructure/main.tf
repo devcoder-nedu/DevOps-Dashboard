@@ -59,7 +59,7 @@ module "gke_prod" {
 # cloud deploy targets
 resource "google_clouddeploy_target" "staging" {
   name     = "staging"
-  location = var.zone
+  location = var.region
 
   gke {
     cluster = module.gke_staging.cluster_id

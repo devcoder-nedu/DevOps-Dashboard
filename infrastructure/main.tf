@@ -145,6 +145,11 @@ resource "google_clouddeploy_target" "staging" {
   gke {
     cluster = module.gke_staging.cluster_id
   }
+
+  execution_configs {
+    usages          = ["RENDER", "DEPLOY"]
+    service_account = google_service_account.pipeline_sa.email
+  }
 }
 
 # Cloud Deploy Target: Production
@@ -154,6 +159,11 @@ resource "google_clouddeploy_target" "prod" {
 
   gke {
     cluster = module.gke_prod.cluster_id
+  }
+
+  execution_configs {
+    usages          = ["RENDER", "DEPLOY"]
+    service_account = google_service_account.pipeline_sa.email
   }
 
   require_approval = true

@@ -87,6 +87,14 @@ resource "google_project_iam_member" "sa_storage_admin" {
   member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
 }
 
+# Grant "Artifact Registry Reader" to GKE nodes (Allows pulling images)
+resource "google_project_iam_member" "gke_artifact_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  # This uses the project number to find the default Compute Engine Service Account
+  member = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+}
+
 # ---------------------------------------------------------
 # 5. INFRASTRUCTURE RESOURCES
 # ---------------------------------------------------------

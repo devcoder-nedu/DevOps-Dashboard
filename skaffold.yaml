@@ -12,5 +12,16 @@ manifests:
   rawYaml:
     - k8s/deployment.yaml
     - k8s/service.yaml
+
 deploy:
   kubectl: {}
+
+# --- ADD THIS SECTION ---
+profiles:
+  - name: staging
+    deploy:
+      kubectl: {}
+
+  - name: prod
+    deploy:
+      kubectl: {}

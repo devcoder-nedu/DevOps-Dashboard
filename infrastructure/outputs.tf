@@ -8,3 +8,11 @@ output "staging_cluster_name" {
 output "prod_cluster_name" {
   value = module.gke_prod.cluster_name
 }
+
+output "staging_cluster_id" {
+  value = module.gke_staging.cluster_id
+}
+
+output "prod_cluster_id" {
+  value = module.gke_prod.cluster_id
+}

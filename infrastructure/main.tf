@@ -80,6 +80,13 @@ resource "google_project_iam_member" "sa_container_dev" {
   member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
 }
 
+# Grant "Storage Admin" (Allows creating the Cloud Deploy bucket)
+resource "google_project_iam_member" "sa_storage_admin" {
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
+}
+
 # ---------------------------------------------------------
 # 5. INFRASTRUCTURE RESOURCES
 # ---------------------------------------------------------

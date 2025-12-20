@@ -229,3 +229,7 @@ resource "google_cloudbuild_trigger" "react_trigger" {
     google_project_iam_member.sa_user # Wait for permissions to propagate
   ]
 }
+
+data "google_project" "project" {
+  project_id = var.project_id
+}

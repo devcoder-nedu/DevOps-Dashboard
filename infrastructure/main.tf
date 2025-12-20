@@ -26,7 +26,7 @@ module "gke_staging" {
   source = "./modules/gke-cluster"
 
   project_id   = var.project_id
-  region       = var.region
+  region       = var.zone
   cluster_name = "staging-cluster"
   node_count   = 1
   machine_type = "e2-medium"
@@ -44,7 +44,7 @@ module "gke_prod" {
   source = "./modules/gke-cluster"
 
   project_id   = var.project_id
-  region       = var.region
+  region       = var.zone
   cluster_name = "prod-cluster"
   node_count   = 2
   machine_type = "e2-medium"
@@ -68,7 +68,7 @@ resource "google_clouddeploy_target" "staging" {
 
 resource "google_clouddeploy_target" "prod" {
   name     = "prod"
-  location = var.zone
+  location = var.region
 
   gke {
     cluster = module.gke_prod.cluster_id

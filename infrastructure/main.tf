@@ -1,45 +1,98 @@
 terraform {
   required_version = ">= 1.0"
 
-  # REAL WORLD CONFIGURATION
+  # 1. REMOTE STATE CONFIGURATION
   backend "gcs" {
-    bucket = "gke-devops-terraform-state-strange-mariner-290720" # Use the name you just created
+    bucket = "gke-devops-terraform-state-strange-mariner-290720"
     prefix = "terraform/state"
   }
 
+  # 2. PROVIDER UPGRADE
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 5.0"
+      version = "~> 5.0" # Upgraded to version 5 to support modern features
     }
   }
 }
-
 
 provider "google" {
   project = var.project_id
   region  = var.region
 }
 
-# to enable APIs
+# 3. ENABLE APIS
 resource "google_project_service" "apis" {
   for_each = toset([
     "container.googleapis.com",
     "cloudbuild.googleapis.com",
     "clouddeploy.googleapis.com",
-    "artifactregistry.googleapis.com"
+    "artifactregistry.googleapis.com",
+    "iam.googleapis.com" # Added IAM API explicitly as we are creating Service Accounts
   ])
-  service = each.key
+  service            = each.key
+  disable_on_destroy = false
 }
 
-# 2. Artifact Registry
+# ---------------------------------------------------------
+# 4. SECURITY & PERMISSIONS (The Fix for Build Errors)
+# ---------------------------------------------------------
+
+# Create a dedicated Service Account for the Pipeline
+resource "google_service_account" "pipeline_sa" {
+  account_id   = "${var.app_name}-sa"
+  display_name = "Cloud Build Pipeline Service Account"
+  depends_on   = [google_project_service.apis]
+}
+
+# Grant "Log Writer" (Fixes the Logging error)
+resource "google_project_iam_member" "sa_logging" {
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
+}
+
+# Grant "Artifact Registry Writer" (Allows pushing Docker images)
+resource "google_project_iam_member" "sa_artifact_writer" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
+}
+
+# Grant "Cloud Deploy Releaser" (Allows creating releases)
+resource "google_project_iam_member" "sa_deploy_releaser" {
+  project = var.project_id
+  role    = "roles/clouddeploy.releaser"
+  member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
+}
+
+# Grant "Service Account User" (Allows Cloud Build to run as this SA)
+resource "google_project_iam_member" "sa_user" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
+}
+
+# Grant "Container Developer" (Allows updating GKE clusters)
+resource "google_project_iam_member" "sa_container_dev" {
+  project = var.project_id
+  role    = "roles/container.developer"
+  member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
+}
+
+# ---------------------------------------------------------
+# 5. INFRASTRUCTURE RESOURCES
+# ---------------------------------------------------------
+
+# Artifact Registry
 resource "google_artifact_registry_repository" "app_repo" {
   location      = var.region
   repository_id = "${var.app_name}-repo"
   format        = "DOCKER"
+  depends_on    = [google_project_service.apis]
 }
 
-# The staging cluster with 1 node
+# Staging Cluster
 module "gke_staging" {
   source = "./modules/gke-cluster"
 
@@ -49,15 +102,14 @@ module "gke_staging" {
   node_count   = 1
   machine_type = "e2-medium"
 
-
-  # FIX: QUOTA REDUCTION
-  disk_size_gb = 30            # Reduced from 100GB default
-  disk_type    = "pd-standard" # Changed from SSD to Standard to bypass SSD quota
+  # Resource Management
+  disk_size_gb = 30
+  disk_type    = "pd-standard"
 
   depends_on = [google_project_service.apis]
 }
 
-# The production cluster with 2 nodes
+# Production Cluster
 module "gke_prod" {
   source = "./modules/gke-cluster"
 
@@ -67,14 +119,18 @@ module "gke_prod" {
   node_count   = 2
   machine_type = "e2-medium"
 
-  # FIX: QUOTA REDUCTION
-  disk_size_gb = 30            # Reduced from 100GB default
-  disk_type    = "pd-standard" # Changed from SSD to Standard to bypass SSD quota
+  # Resource Management
+  disk_size_gb = 30
+  disk_type    = "pd-standard"
 
   depends_on = [google_project_service.apis, module.gke_staging]
 }
 
-# cloud deploy targets
+# ---------------------------------------------------------
+# 6. DEPLOYMENT PIPELINE
+# ---------------------------------------------------------
+
+# Cloud Deploy Target: Staging
 resource "google_clouddeploy_target" "staging" {
   name     = "staging"
   location = var.region
@@ -84,6 +140,7 @@ resource "google_clouddeploy_target" "staging" {
   }
 }
 
+# Cloud Deploy Target: Production
 resource "google_clouddeploy_target" "prod" {
   name     = "prod"
   location = var.region
@@ -92,11 +149,10 @@ resource "google_clouddeploy_target" "prod" {
     cluster = module.gke_prod.cluster_id
   }
 
-  # Require manual approval for prod
   require_approval = true
 }
 
-#  The cloud deploy delivery pipeline
+# Delivery Pipeline Definition
 resource "google_clouddeploy_delivery_pipeline" "pipeline" {
   name        = "${var.app_name}-pipeline"
   location    = var.region
@@ -114,70 +170,28 @@ resource "google_clouddeploy_delivery_pipeline" "pipeline" {
     }
   }
 }
-# Output variables to help with configuration
 
-# IAM Bindings for Cloud Build Service Account
-data "google_project" "project" {
-  project_id = var.project_id
-}
-
-resource "google_project_iam_member" "cloudbuild_ar_writer" {
-  project = var.project_id
-  role    = "roles/artifactregistry.writer"
-  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-
-  depends_on = [google_project_service.apis]
-}
-
-
-resource "google_project_iam_member" "cloudbuild_deploy_releaser" {
-  project = var.project_id
-  role    = "roles/clouddeploy.releaser"
-  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-
-  depends_on = [google_project_service.apis]
-}
-
-# Granted Cloud Build permission to "Act As" other Service Accounts
-# (Required to trigger the Cloud Deploy execution)
-resource "google_project_iam_member" "cloudbuild_sa_user" {
-  project = var.project_id
-  role    = "roles/iam.serviceAccountUser"
-  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-
-  depends_on = [google_project_service.apis]
-}
-
-# 5. Grant the "Execution Service Account" permission to modify GKE
-# (Cloud Deploy uses the Compute Engine Default SA by default to update clusters)
-resource "google_project_iam_member" "deploy_container_dev" {
-  project = var.project_id
-  role    = "roles/container.developer"
-  member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
-
-  depends_on = [google_project_service.apis]
-}
+# ---------------------------------------------------------
+# 7. CI/CD TRIGGER (Using Custom Service Account)
+# ---------------------------------------------------------
 
 resource "google_cloudbuild_trigger" "react_trigger" {
-  name            = "${var.app_name}-trigger"
-  location        = var.region # This must match your artifact repo region (us-central1)
-  service_account = "projects/${var.project_id}/serviceAccounts/${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  name     = "${var.app_name}-trigger"
+  location = var.region
 
-  # This connects to the repo you authorized in Step 1
+  # CRITICAL: Use the custom service account we created above
+  service_account = google_service_account.pipeline_sa.id
+
   github {
     owner = var.github_owner
     name  = var.github_repo
-
-    # Trigger on push to main branch
     push {
       branch = "^main$"
     }
   }
 
-  # Tell it where to find the build file
   filename = "cloudbuild.yaml"
 
-  # AUTOMATICALLY inject the correct variables into cloudbuild.yaml
   substitutions = {
     _REGION        = var.region
     _PIPELINE_NAME = google_clouddeploy_delivery_pipeline.pipeline.name
@@ -186,6 +200,7 @@ resource "google_cloudbuild_trigger" "react_trigger" {
 
   depends_on = [
     google_artifact_registry_repository.app_repo,
-    google_clouddeploy_delivery_pipeline.pipeline
+    google_clouddeploy_delivery_pipeline.pipeline,
+    google_project_iam_member.sa_user # Wait for permissions to propagate
   ]
 }

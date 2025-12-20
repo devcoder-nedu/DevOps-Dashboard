@@ -16,3 +16,11 @@ output "staging_cluster_id" {
 output "prod_cluster_id" {
   value = module.gke_prod.cluster_id
 }
+
+output "staging_clouddeploy_target" {
+  value = google_clouddeploy_target.staging.name
+}
+
+output "prod_clouddeploy_target" {
+  value = google_clouddeploy_target.prod.name
+}

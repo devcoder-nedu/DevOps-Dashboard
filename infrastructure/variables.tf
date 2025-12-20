@@ -20,3 +20,13 @@ variable "app_name" {
   type        = string
   default     = "gke-devops-app"
 }
+
+variable "github_owner" {
+  description = "Your GitHub username (e.g., franklin-dev)"
+  type        = string
+}
+
+variable "github_repo" {
+  description = "Your GitHub repository name (e.g., gke-devops-app)"
+  type        = string
+}

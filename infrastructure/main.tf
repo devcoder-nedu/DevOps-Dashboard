@@ -139,3 +139,36 @@ resource "google_project_iam_member" "deploy_container_dev" {
 
   depends_on = [google_project_service.apis]
 }
+
+
+
+resource "google_cloudbuild_trigger" "react_trigger" {
+  name     = "${var.app_name}-trigger"
+  location = var.region # This must match your artifact repo region (us-central1)
+
+  # This connects to the repo you authorized in Step 1
+  github {
+    owner = var.github_owner
+    name  = var.github_repo
+
+    # Trigger on push to main branch
+    push {
+      branch = "^main$"
+    }
+  }
+
+  # Tell it where to find the build file
+  filename = "cloudbuild.yaml"
+
+  # AUTOMATICALLY inject the correct variables into cloudbuild.yaml
+  substitutions = {
+    _REGION        = var.region
+    _PIPELINE_NAME = google_clouddeploy_delivery_pipeline.pipeline.name
+    _REPO_NAME     = google_artifact_registry_repository.app_repo.name
+  }
+
+  depends_on = [
+    google_artifact_registry_repository.app_repo,
+    google_clouddeploy_delivery_pipeline.pipeline
+  ]
+}

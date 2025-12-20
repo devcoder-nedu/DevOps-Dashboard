@@ -141,8 +141,8 @@ resource "google_project_iam_member" "deploy_container_dev" {
 }
 
 resource "google_cloudbuild_trigger" "react_trigger" {
-  name     = "${var.app_name}-trigger"
-  location = var.region # This must match your artifact repo region (us-central1)
+  name            = "${var.app_name}-trigger"
+  location        = var.region # This must match your artifact repo region (us-central1)
   service_account = "projects/${var.project_id}/serviceAccounts/${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
 
   # This connects to the repo you authorized in Step 1

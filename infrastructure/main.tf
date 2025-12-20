@@ -171,7 +171,3 @@ resource "google_cloudbuild_trigger" "react_trigger" {
     google_clouddeploy_delivery_pipeline.pipeline
   ]
 }
-
-data google_project project {
-  project_id = var.project_id
-}

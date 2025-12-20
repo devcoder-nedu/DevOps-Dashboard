@@ -21,6 +21,4 @@ output "staging_clouddeploy_target" {
   value = google_clouddeploy_target.staging.name
 }
 
-output "prod_clouddeploy_target" {
-  value = google_clouddeploy_target.prod.name
-}
+

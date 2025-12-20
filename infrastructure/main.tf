@@ -53,13 +53,13 @@ module "gke_prod" {
   disk_size_gb = 30            # Reduced from 100GB default
   disk_type    = "pd-standard" # Changed from SSD to Standard to bypass SSD quota
 
-  depends_on = [google_project_service.apis]
+  depends_on = [google_project_service.apis, module.gke_staging]
 }
 
 # cloud deploy targets
 resource "google_clouddeploy_target" "staging" {
   name     = "staging"
-  location = var.region
+  location = var.zone
 
   gke {
     cluster = module.gke_staging.cluster_id
@@ -68,7 +68,7 @@ resource "google_clouddeploy_target" "staging" {
 
 resource "google_clouddeploy_target" "prod" {
   name     = "prod"
-  location = var.region
+  location = var.zone
 
   gke {
     cluster = module.gke_prod.cluster_id

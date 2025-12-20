@@ -1,6 +1,7 @@
 steps:
   # 1. Build the container image using Skaffold
   - name: "gcr.io/k8s-skaffold/skaffold"
+    entrypoint: "skaffold"
     args:
       - "build"
       - "--file-output=/workspace/artifacts.json"
@@ -27,5 +28,5 @@ options:
 substitutions:
   _REGION: us-central1
   #Matching values in Terraform infra/main.tf
-  _PIPELINE_NAME: gke-devops-app-pipeline 
-  _REPO_NAME: gke-devops-app-repo          
+  _PIPELINE_NAME: gke-devops-app-pipeline
+  _REPO_NAME: gke-devops-app-repo

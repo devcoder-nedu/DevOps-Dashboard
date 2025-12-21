@@ -114,7 +114,7 @@ module "gke_staging" {
   project_id   = var.project_id
   region       = var.zone
   cluster_name = "staging-cluster"
-  node_count   = 1
+  node_count   = 2
   machine_type = "e2-medium"
 
   # Resource Management

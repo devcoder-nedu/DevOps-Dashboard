@@ -1,17 +1,18 @@
 name: "Terraform Infrastructure"
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "infrastructure/**" # Only run when infra files change
+  # Commented out to allow manual triggering only
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - "infrastructure/**" # Only run when infra files change
   workflow_dispatch: # Allows manual triggering
     inputs:
       action:
-        description: 'Action to perform: apply or destroy'
+        description: "Action to perform: apply or destroy"
         required: true
-        default: 'apply'
+        default: "apply"
         type: choice
         options:
           - apply
